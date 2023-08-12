@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus
+spec:
+  destination:
+    name: ''
+    namespace: prometheus
+    server: 'https://kubernetes.default.svc'
+  source:
+    path: prometheus
+    repoURL: 'http://54.188.183.48/developer/person-deployment.git'
+    targetRevision: HEAD
+    helm:
+      skipCrds: true
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - Replace=true

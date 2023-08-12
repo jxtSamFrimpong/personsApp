@@ -1,0 +1,67 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Person App</title>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='style.css')}}">
+</head>
+
+<body>
+    <h1>Ultra Simple Persons App🤦‍♀️🤪</h1>
+    <form method="POST" action="{{ url_for('add_person') }}" class="container">
+        <label>Add Person</label>
+        <hr />
+        <label>ID:</label>
+        <input type="text" name="_id">
+        <br>
+        <label>Name:</label>
+        <input type="text" name="name">
+        <br>
+        <label>Age:</label>
+        <input type="text" name="age">
+        <br>
+        <input type="submit" value="Add">
+    </form>
+    <br>
+    <form method="PUT" action="{{ url_for('update_person') }}" class="container">
+        <label>Update person</label>
+        <hr />
+        <label>ID:</label>
+        <input type="text" name="_id">
+        <br>
+        <label>Name:</label>
+        <input type="text" name="name">
+        <br>
+        <label>Age:</label>
+        <input type="text" name="age">
+        <br>
+        <input type="submit" value="Update">
+    </form>
+    <br>
+    <form method="GET" action="{{ url_for('fetch_person') }}" class="container">
+        <label>Get one person</label>
+        <hr />
+        <label>ID:</label>
+        <input type="text" name="_id">
+        <br>
+        <input type="submit" value="Fetch">
+    </form>
+    <br>
+    <form method="GET" action="{{ url_for('fetch_everyone') }}" class="container">
+        <label>Get all persons</label>
+        <hr />
+        <input type="submit" value="Fetch">
+    </form>
+    <br>
+    <form method="DELETE" action="{{ url_for('delete_person') }}" class="container">
+        <label>Delete a Person</label>
+        <hr />
+        <label>ID:</label>
+        <input type="text" name="_id">
+        <br>
+        <input type="submit" value="Delete">
+    </form>
+</body>
+
+</html>

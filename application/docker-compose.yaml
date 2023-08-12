@@ -1,0 +1,101 @@
+services:
+  mongo:
+    container_name: mongo
+    image: bitnami/mongodb:4.4
+    restart: on-failure
+    environment:
+      - MONGODB_USERNAME=$MONGODB_USERNAME
+      - MONGODB_PASSWORD=$MONGODB_PASSWORD
+      - MONGODB_DATABASE=$MONGODB_DATABASE
+      - MONGODB_ROOT_PASSWORD=$MONGODB_ROOT_PASSWORD
+    healthcheck:
+      test: mongosh --eval 'db.runCommand("ping").ok' localhost:27017/test --quiet
+      interval: 10s
+      start_period: 10s
+      timeout: 5s
+      retries: 10
+    # ports:
+    #   - 27017:27017
+    networks:
+      - port-app-eth
+    volumes:
+      - mongodb_data:/bitnami/mongodb
+
+  api:
+    container_name: api
+    image: $BACKEND_IMAGE:$BACKEND_TAG
+    restart: on-failure
+    environment:
+      - MONGODB_USERNAME=$MONGODB_USERNAME
+      - MONGODB_PASSWORD=$MONGODB_PASSWORD
+      - MONGODB_DATABASE=$MONGODB_DATABASE
+      - MONGODB_HOST=$MONGODB_HOST
+      - MONGODB_PORT=$MONGODB_PORT
+      - API_PORT=$API_PORT
+    networks:
+      - port-app-eth
+      - front-end
+    ports:
+      - "$API_PORT:$API_PORT"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:$API_PORT/persons || exit
+      interval: 5s
+      retries: 10
+      start_period: 10s
+      timeout: 5s
+
+  webapp:
+    container_name: webapp
+    image: $WEB_APP_IMAGE:$WEB_APP_TAG
+    restart: on-failure
+    environment:
+      - API_HOST=$API_HOST
+      - API_PORT=$API_PORT
+      - WEB_APP_PORT=$WEB_APP_PORT
+    networks:
+      - front-end
+    ports:
+      - "$WEB_APP_PORT:$WEB_APP_PORT"
+    volumes:
+      - static:/web/static
+      - templates:/web/templates
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:$WEB_APP_PORT || exit
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+  proxy:
+    image: my-nginx
+    hostname: proxy
+    container_name: nginx
+    #restart: on-failure
+    volumes:
+      #- ./conf/nginx.conf:/etc/nginx/nginx.conf
+      - static:/usr/share/nginx/static
+      - templates:/usr/share/nginx/templates
+    networks:
+      - front-end
+    ports:
+      - "$PROXY_PORT:80"
+    environment:
+      - WEB_APP_URL=$WEB_APP_HOST:$WEB_APP_PORT
+    depends_on:
+      webapp:
+        condition: service_healthy
+
+networks:
+  port-app-eth:
+  front-end:
+
+
+volumes:
+  mongodb_data:
+  static:
+  templates:

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appAttributes.fullName.api }}
+  labels:
+    app: {{ .Values.appAttributes.fullName.api }}
+spec:
+  {{- if not .Values.appAttributes.autoscaling.api.enabled }}
+  replicas: {{ .Values.appAttributes.replicaCount.api }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Values.appAttributes.fullName.api }}
+  template:
+    metadata:
+      {{- with .Values.appAttributes.podAnnotations.api }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app: {{ .Values.appAttributes.fullName.api }}
+    spec:
+      {{- with .Values.appAttributes.imagePullSecrets.api }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "persons.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.appAttributes.podSecurityContext.api | nindent 8 }}
+      containers:
+        - name: {{ .Values.appAttributes.fullName.api }}
+          securityContext:
+            {{- toYaml .Values.appAttributes.securityContext.api | nindent 12 }}
+          image: "{{ .Values.appAttributes.image.api.repository }}:{{ .Values.appAttributes.image.api.backendImageTag | default .Values.appAttributes.image.api.defaultTag }}"
+          imagePullPolicy: {{ .Values.appAttributes.image.api.backendImagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.appAttributes.service.api.portNumber }}
+              protocol: TCP
+          env:
+            - name: MONGODB_USERNAME
+              value: sammy
+            - name: MONGODB_PASSWORD
+              value: "blue-bird"
+            - name: MONGODB_DATABASE
+              value: bluedb
+            - name: MONGODB_HOST
+              value: "{{ .Values.appAttributes.environmentVars.api.mongoHost | default .Values.appAttributes.environmentVars.api.mongoHostDefault }}"
+            - name: MONGODB_PORT
+              value: "{{ .Values.appAttributes.environmentVars.api.mongoPort }}"
+            - name: API_PORT
+              value: "{{ .Values.appAttributes.service.api.port }}"
+          resources:
+            {{- toYaml .Values.appAttributes.resources.api | nindent 12 }}
+      {{- with .Values.appAttributes.nodeSelector.api }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.appAttributes.affinity.api }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.appAttributes.tolerations.api }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

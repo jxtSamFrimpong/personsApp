@@ -1,0 +1,144 @@
+argoAutoInstall:
+  enabled: true
+
+argo-cd:
+  nameOverride: argocd
+  fullnameOverride: argocd
+  configs:
+    secret:
+      argocdServerAdminPassword: "$2a$10$Gr0GxGkviKgLXcmSssK46etRmnFII8SU3hymjRjv3SxdWaKOTf0MK"
+    params:
+      server.insecure: true
+    repositories:
+      deployment-repo:
+        url: http://52.24.144.7/developer/person-deployment.git
+        name: deployment
+        type: git
+        username: example
+        password: example
+      continuous-deployment-repo:
+        url: http://52.24.144.7/developer/continuous-deployment-portfolio.git
+        name: continuous-deployment
+        type: git
+        password: example
+        username: example
+          
+  redis-ha:
+    enabled: true
+  redis:
+    resources:
+      limits:
+        cpu: 200m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+    exporter:
+      resources:
+        limits:
+          cpu: 50m
+          memory: 64Mi
+        requests:
+          cpu: 10m
+          memory: 32Mi
+
+  controller:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  server:
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+    ingress:
+      enabled: true
+      hosts:
+        - myargo.mooo.com
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+      paths:
+        - /
+      pathType: ImplementationSpecific
+      extraPaths:
+        - path: /
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: argocd-server
+              port:
+                name: https
+    extensions:
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+  crds:
+    keep: false
+
+  repoServer:
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+    resources:
+      limits:
+        cpu: 50m
+        memory: 128Mi
+      requests:
+        cpu: 10m
+        memory: 64Mi
+
+  applicationSet:
+    replicaCount: 2
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  
+  dex:
+    resources:
+      limits:
+        cpu: 50m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+  notifications:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    bots:
+      slack:
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi

@@ -1,0 +1,21 @@
+#FROM python:3.10.6-slim-bullseye
+FROM python:3.10.6-alpine
+
+COPY backend/requirements.txt /backend/requirements.txt
+RUN pip install -r /backend/requirements.txt
+
+COPY backend/api.py /backend/api.py
+COPY backend/serial.py /backend/serial.py
+
+ENV MONGODB_USERNAME username \
+    MONGODB_PASSWORD userpass \
+    MONGODB_DATABASE userdb \
+    MONGODB_HOST localhost \
+    MONGODB_PORT 27017 \
+    API_PORT 5000
+
+EXPOSE $API_PORT
+
+WORKDIR /backend
+
+CMD ["python", "api.py"]

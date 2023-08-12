@@ -1,0 +1,28 @@
+ingressAutoInstall:
+  enabled: true
+
+nginx-ingress-controller:
+  nameOverride: nginx-ingress-controller
+  fullnameOverride: nginx-ingress-controller
+  metrics:
+    enabled: true
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  defaultBackend:
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+    # serviceMonitor:
+    #   enabled: true
+    # prometheusRule:
+    #   enabled: true
+
+# controller:
+#   metrics:
+#     enabled: true
+#     serviceMonitor:
+#       enabled: true
+  

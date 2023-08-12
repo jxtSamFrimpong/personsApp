@@ -1,0 +1,136 @@
+pipeline {
+    agent any
+
+    environment{
+        SVC_ACC = credentials('Terraform')
+        DEV_SEC = credentials('secret-developer')
+        SVC_EM = credentials('terraform-email')
+        PROJECT = "engaged-kite-373111"
+        CLUSTER = "portfolio"
+        REGION = "us-central1"
+
+    }
+    
+    tools{
+        terraform "Terraform"
+    }
+
+    options{
+        gitLabConnection('Portfolio-Persons')
+    }
+
+    stages{
+
+        stage('Validate'){
+            steps{
+                script{
+                    env.CD_URL = "http://${DEV_SEC}:${DEV_SEC}@10.0.31.19/developer/continuous-deployment-portfolio.git"
+                    sh"""
+                    export GOOGLE_APPLICATION_CREDENTIALS=${SVC_ACC}
+                    export GOOGLE_CREDENTIALS=${SVC_ACC}
+                    gcloud auth login --no-launch-browser --quiet --project ${PROJECT} --cred-file ${SVC_ACC}
+                    gcloud config set account ${SVC_EM}
+                    gcloud auth activate-service-account ${SVC_EM} --key-file=${SVC_ACC}
+                    gcloud auth application-default print-access-token
+                    terraform init
+                    terraform validate
+                    """
+                }
+            }
+        }
+
+        stage('apply'){
+            when {
+                not {
+                    changelog "^*destroy*"
+                }
+            }
+
+            steps{
+                script{
+                withCredentials([file(credentialsId: 'Terraform', variable: 'FILE')]){
+                        sh """
+                        export GOOGLE_APPLICATION_CREDENTIALS=${SVC_ACC}
+                        export GOOGLE_CREDENTIALS=${SVC_ACC}
+                        gcloud auth login --no-launch-browser --quiet --project ${PROJECT} --cred-file ${SVC_ACC}
+                        gcloud config set account ${SVC_EM}
+                        gcloud auth activate-service-account ${SVC_EM} --key-file=${SVC_ACC}
+                        gcloud auth application-default print-access-token
+                        terraform init
+                        terraform plan
+                        terraform apply --auto-approve
+                        """ 
+                }
+            }
+            }
+        }
+
+        stage('apply-and-create'){
+            when {
+                changelog "^*create*"
+            }
+
+            steps{
+                sh """
+                export GOOGLE_APPLICATION_CREDENTIALS=${SVC_ACC}
+                export GOOGLE_CREDENTIALS=${SVC_ACC}
+                gcloud auth login --no-launch-browser --quiet --project ${PROJECT} --cred-file ${SVC_ACC}
+                gcloud config set account ${SVC_EM}
+                gcloud auth activate-service-account ${SVC_EM} --key-file=${SVC_ACC}
+                gcloud container clusters get-credentials ${CLUSTER} --region ${REGION} --project ${PROJECT}
+                git clone ${CD_URL}
+                ls -la continuous-deployment-portfolio
+                kubectl apply -f continuous-deployment-portfolio/argocd-ns.yaml
+                kubectl apply -f continuous-deployment-portfolio/prom-ns.yaml
+                helm upgrade --install ingress continuous-deployment-portfolio/ingress-nginx
+                sleep 15
+                helm upgrade --install prometheus continuous-deployment-portfolio/prometheus -n prometheus
+                sleep 15
+                helm upgrade --install argocd continuous-deployment-portfolio/myargo -n argocd --set argo-cd.configs.repositories.deployment-repo.username=${DEV_SEC} --set argo-cd.configs.repositories.deployment-repo.password=${DEV_SEC} --set argo-cd.configs.repositories.continuous-deployment-repo.username=${DEV_SEC} --set argo-cd.configs.repositories.continuous-deployment-repo.password=${DEV_SEC}
+                sleep 15
+                kubectl apply -f continuous-deployment-portfolio/app/main.yaml -n argocd
+                """
+            }
+
+        }
+
+        stage('destroy'){
+            when {
+                changelog "^*destroy*"
+            }
+            steps{
+                sh """
+                export GOOGLE_APPLICATION_CREDENTIALS=${SVC_ACC}
+                export GOOGLE_CREDENTIALS=${SVC_ACC}
+                gcloud auth login --no-launch-browser --quiet --project ${PROJECT} --cred-file ${SVC_ACC}
+                gcloud config set account ${SVC_EM}
+                gcloud auth activate-service-account ${SVC_EM} --key-file=${SVC_ACC}
+                gcloud container clusters get-credentials ${CLUSTER} --region ${REGION} --project ${PROJECT}
+                gcloud auth application-default print-access-token
+                terraform init
+                terraform plan
+                terraform destroy --auto-approve
+                """
+            }
+        }
+    }
+
+    post{
+        always{
+            script{
+                emailext attachLog: true, body: '$PROJECT_NAME $BUILD_NUMBER $BUILD_STATUS', compressLog: true, recipientProviders: [previous(), upstreamDevelopers()], subject: 'jenkins-ci-job-report: Persons Infrastructure $PROJECT_NAME $BUILD_NUMBER $BUILD_STATUS', to: 'frimpong@reallygreattech.com'
+            }
+            cleanWs()
+        }
+        success{
+            gitlabCommitStatus(name: 'Build: Person Infrastructure') {
+                echo 'success'
+            }
+        }
+        failure{
+            gitlabCommitStatus(name: 'Build: Person Infrastructure') {
+                echo 'failed'
+            }
+        }
+    }
+}

@@ -1,0 +1,50 @@
+pipeline{
+    agent any
+
+    environment{
+        JENKINS_USER=credentials('Jenkins-Username-Git')
+        JENKINS_PASS=credentials('Jenkins-Pass-Git')
+    }
+
+    options {
+        gitLabConnection('Portfolio-Persons')
+    }
+
+    stages{
+        stage('Versioning'){
+            when {
+                changelog "^*persons*"
+            }
+            steps{
+                script{
+                    env.CHART_VERSION = sh(returnStdout: true, script: "bash current_chart_version.sh").trim()
+                    env.NEW_CHART_VERSION = sh(returnStdout: true, script: "bash new_version.sh").trim()
+
+                    env.CHART_VERSION_REPLACE = "version: ${env.NEW_CHART_VERSION}"
+                    sh(script: "bash update_chart_version.sh")
+                }
+            }
+        }
+
+        stage('Packaging'){
+            when {
+                changelog "^*persons*"
+            }
+            steps{
+                script{
+                    sh(script: "helm package persons")
+                    env.PACKAGE = sh(returnStdout: true, script: "bash package.sh").trim()
+                }
+            }
+        }
+    }
+
+    post{
+        success{
+            script{
+                    emailext attachLog: true, attachmentsPattern: "$PACKAGE", body: "Helm Package of Persons", compressLog: false, recipientProviders: [previous(), upstreamDevelopers()], subject: 'jenkins-ci-job-report: Persons Helm Package', to: 'frimpong@reallygreattech.com'
+                    cleanWs()
+                }
+        }
+    }
+}

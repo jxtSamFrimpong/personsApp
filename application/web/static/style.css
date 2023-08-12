@@ -1,0 +1,59 @@
+/* Center all components */
+
+body {
+    background-color: #f5f5f5;
+    font-family: 'Open Sans', sans-serif;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* Add colors and shades */
+h1 {
+    color: #5D5D5D;
+    margin-bottom: 30px;
+}
+
+form {
+    background-color: #F5F5F5;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 2px 2px 10px #C9C9C9;
+    padding: 20px;
+}
+
+label {
+    color: #8B8B8B;
+}
+
+input[type='text'] {
+    border: none;
+    border-bottom: 2px solid #C9C9C9;
+    background-color: #F5F5F5;
+    padding: 5px;
+    margin-bottom: 20px;
+}
+
+input[type='submit'] {
+    background-color: #5D5D5D;
+    color: #F5F5F5;
+    border: none;
+    padding: 10px 20px;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+input[type='submit']:hover {
+    background-color: #8B8B8B;
+    transform: scale(1.1);
+}
+
+.container {
+    /* display: grid; */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-gap: 20px;
+    align-items: center;
+}

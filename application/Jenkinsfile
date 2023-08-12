@@ -1,0 +1,166 @@
+pipeline{
+    agent any
+    environment{
+        GCR_REPO_URL_BACK="gcr.io/engaged-kite-373111"
+        GCR_REPO_URL_WEB="gcr.io/engaged-kite-373111"
+        GCR_CREDENTIALS="gcr:jenkins-GCP-GCR"
+        INTERNAL_IP="10.0.31.19"
+        JENKINS_USER=credentials('Jenkins-Username-Git')
+        JENKINS_PASS=credentials('Jenkins-Pass-Git')
+
+    }
+    options {
+        gitLabConnection('Portfolio-Persons')
+    }
+
+    stages{
+
+        // stage('Checkout'){
+        //     steps{
+
+        //     }
+        // }
+
+        stage('Pre-build'){
+            steps{
+                script{
+                    env.BACKEND_IMAGE = sh(returnStdout: true, script: "bash prescripts/backend-image-name.sh").trim()
+                    env.WEB_APP_IMAGE = sh(returnStdout: true, script: "bash prescripts/webapp-image-name.sh").trim()
+                    env.API_PORT = sh(returnStdout: true, script: "bash prescripts/api-port-number.sh").trim()
+                }
+            }
+        }
+        
+        stage('Build'){
+            steps{
+                parallel(
+                    api: {
+                        script{
+                            docker.build("${BACKEND_IMAGE}", "-f Dockerfile.api .")
+                        }
+                    },
+                    web: {
+                        script{
+                            docker.build("${WEB_APP_IMAGE}", "-f Dockerfile.web .")
+                        }
+                    },
+                    nginx: {
+                        script{
+                            docker.build("my-nginx", "-f Dockerfile.nginx .")
+                        }
+                    }
+                )
+            }
+        }
+
+        // stage('Unit Test'){
+        //     steps{
+
+        //     }
+        // }
+
+
+        stage('E2E Test'){
+            when {
+                    anyOf{
+                        branch "feature/*"
+                        branch "master"
+                    }
+                }
+            steps{
+                sh "docker compose up -d --force-recreate"
+                sh "./main-test.sh"
+            }
+            //
+        }
+
+        stage('Tag'){
+            when{
+                branch "master"
+            }
+            steps{
+                echo "hello todo versioning"
+                script{
+                    env.CURRENT_APPLICATIONS_TAG = sh(returnStdout: true, script: "bash versioning/current-tag.sh").trim()
+                }
+                echo env.CURRENT_APPLICATIONS_TAG
+
+                script{
+                    env.NEW_APPLICATIONS_TAG = sh(returnStdout: true, script: "bash versioning/calculate-release.sh").trim()
+                }
+                echo env.NEW_APPLICATIONS_TAG
+            }
+        }
+
+        stage('Publish'){
+            when{
+                branch "master"
+            }
+
+            steps{
+                script{
+                    parallel(
+                        api: {
+                            script{
+                                        withDockerRegistry(credentialsId: "${GCR_CREDENTIALS}", url: "http://${GCR_REPO_URL_BACK}/${BACKEND_IMAGE}") {
+                                            sh "docker tag persons-backend ${GCR_REPO_URL_BACK}/${BACKEND_IMAGE}:${NEW_APPLICATIONS_TAG}"    //NEW_APPLICATIONS_TAG
+                                            sh "docker push ${GCR_REPO_URL_BACK}/${BACKEND_IMAGE}:${NEW_APPLICATIONS_TAG}"
+                                        }
+                            }
+                        },
+                        web: {
+                            script{
+                                        withDockerRegistry(credentialsId: "${GCR_CREDENTIALS}", url: "http://${GCR_REPO_URL_WEB}/${WEB_APP_IMAGE}") {
+                                                sh "docker tag persons-webapp ${GCR_REPO_URL_WEB}/${WEB_APP_IMAGE}:${NEW_APPLICATIONS_TAG}" //NEW_APPLICATIONS_TAG
+                                                sh "docker push ${GCR_REPO_URL_WEB}/${WEB_APP_IMAGE}:${NEW_APPLICATIONS_TAG}"
+                                            }
+                            }
+                        }
+                    )
+                }
+
+                script{
+                    sh(script: "bash versioning/push-new-tags.sh")
+                }
+            }
+        }
+
+        stage('Deploy'){
+            when{
+                branch "master"
+            }
+
+            steps {
+                echo "Triggering Build job for helm versioning with parameter: APPLICATIONS_VERSION"
+                build job: 'helm-versioning', parameters: [string(name: 'APPLICATIONS_VERSION', value: "$NEW_APPLICATIONS_TAG" )]
+            }
+        }
+
+
+
+
+    }
+
+    post{
+        always{
+            script{
+                sh "docker compose down -v --remove-orphans"
+            }
+            script{
+                emailext attachLog: true, body: '$PROJECT_NAME $BUILD_NUMBER $BUILD_STATUS', compressLog: true, recipientProviders: [previous(), upstreamDevelopers()], subject: 'jenkins-ci-job-report-portfolio-persons: $PROJECT_NAME $BUILD_NUMBER $BUILD_STATUS', to: 'frimpong@reallygreattech.com'
+            }
+            cleanWs()
+        }
+        success{
+            gitlabCommitStatus(name: 'Build: Person') {
+                echo 'success'
+            }
+        }
+
+        failure{
+            gitlabCommitStatus(name: 'Build: Person') {
+                echo 'failed'
+            }
+        }
+    }
+}

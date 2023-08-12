@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: persons
+spec:
+  destination:
+    name: ''
+    namespace: persons
+    server: 'https://kubernetes.default.svc'
+  source:
+    path: persons
+    repoURL: 'http://52.24.144.7/developer/person-deployment.git'
+    targetRevision: HEAD
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - Replace=true
+    # retry:
+    #   limit: 25
+    #   backoff:
+    #     duration: 5s
+    #     maxDuration: 1m0s
+    #     factor: 2

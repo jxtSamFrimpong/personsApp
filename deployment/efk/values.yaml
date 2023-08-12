@@ -1,0 +1,76 @@
+elasticsearchAutoInstall:
+  enabled: true
+
+fluentdAutoInstall:
+  enabled: true
+
+kibanaAutoInstall:
+  enabled: true
+
+elasticsearch:
+  nameOverride: elasticsearch
+  fullnameOverride: elasticsearch
+  master:
+    replicaCount: 1
+  data:
+    replicaCount: 1
+  coordinating:
+    replicaCount: 1
+  ingest:
+    replicaCount: 1
+  metrics:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+  volumePermissions:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+  sysctlImage:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+
+fluentd:
+  nameOverride: fluentd
+  fullnameOverride: fluentd
+  aggregator:
+    configMap: elasticsearch-output
+    extraEnvVars:
+      - name: ELASTICSEARCH_HOST
+        value: elasticsearch.efk.svc.cluster.local
+      - name: ELASTICSEARCH_PORT
+        value: "9200"
+    resources:
+      limits:
+        cpu: 300m
+        memory: 512Mi
+  forwarder:
+    configMap: apache-log-parser
+    resources:
+      limits:
+        cpu: 300m
+        memory: 512Mi
+  
+
+
+kibana:
+  nameOverride: kibana
+  fullnameOverride: kibana
+  ingress:
+    enabled: true
+    hostname: mykibana.mooo.com
+    annotations:
+      kubernetes.io/ingress.class: nginx
+  elasticsearch:
+    hosts:
+      - elasticsearch.efk.svc.cluster.local
+    port: "9200"
+  # resources:
+  #   limits:
+  #     cpu: 100m
+  #     memory: 256Mi

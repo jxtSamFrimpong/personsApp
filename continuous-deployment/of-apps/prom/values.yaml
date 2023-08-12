@@ -1,0 +1,47 @@
+prometheus:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+    hosts:
+      - myprom.mooo.com
+    paths:
+      - /
+  prometheusSpec:
+    additionalScrapeConfigs:
+      - job_name: ingress_controller
+        honor_timestamps: true
+        scrape_interval: 1m
+        scrape_timeout: 1m
+        metrics_path: /metrics
+        scheme: http
+        static_configs:
+          - targets:
+              - nginx-ingress-controller-metrics.default.svc.cluster.local:9913
+      - job_name: persons_scrapper
+        honor_timestamps: true
+        scrape_interval: 1m
+        scrape_timeout: 1m
+        metrics_path: /metrics
+        scheme: http
+        static_configs:
+          - targets:
+              - api-service.persons.svc.cluster.local
+alertmanager:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+    hosts:
+      - myalerts.mooo.com
+    paths:
+      - /
+grafana:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+    hosts:
+      - mygrafana.mooo.com
+    paths:
+      - /

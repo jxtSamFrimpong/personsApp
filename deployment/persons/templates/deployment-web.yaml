@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appAttributes.fullName.web }}
+  labels:
+    app: {{ .Values.appAttributes.fullName.web }}
+spec:
+  {{- if not .Values.appAttributes.autoscaling.web.enabled }}
+  replicas: {{ .Values.appAttributes.replicaCount.web }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Values.appAttributes.fullName.web }}
+  template:
+    metadata:
+      {{- with .Values.appAttributes.podAnnotations.web }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app: {{ .Values.appAttributes.fullName.web }}
+    spec:
+      {{- with .Values.appAttributes.imagePullSecrets.web }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "persons.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.appAttributes.podSecurityContext.web | nindent 8 }}
+      containers:
+        - name: {{ .Values.appAttributes.fullName.web }}
+          securityContext:
+            {{- toYaml .Values.appAttributes.securityContext.web | nindent 12 }}
+          image: "{{ .Values.appAttributes.image.web.repository }}:{{ .Values.appAttributes.image.web.webappImageTag | default .Values.appAttributes.image.web.defaultTag }}"
+          imagePullPolicy: {{ .Values.appAttributes.image.web.webappImagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.appAttributes.service.web.portNumber }}
+              protocol: TCP
+          env:
+            - name: API_PORT
+              value: "80"
+            - name: API_HOST
+              value: "{{ .Values.appAttributes.environmentVars.web.apiHost }}"
+            - name: WEB_APP_PORT
+              value: "{{ .Values.appAttributes.service.web.port }}"
+          resources:
+            {{- toYaml .Values.appAttributes.resources.web | nindent 12 }}
+      {{- with .Values.appAttributes.nodeSelector.web }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.appAttributes.affinity.web }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.appAttributes.tolerations.web }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

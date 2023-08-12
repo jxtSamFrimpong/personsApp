@@ -1,0 +1,41 @@
+nameOverride: kube-prometheus-stack
+fullnameOverride: kube-prometheus-stack
+prometheus:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+    hosts:
+      - prometheus.frimpong.com
+    paths:
+      - /
+prometheusSpec:
+  additionalScrapeConfigs:
+    - job_name: ingress_controller
+      honor_timestamps: true
+      scrape_interval: 1m
+      scrape_timeout: 1m
+      metrics_path: /metrics
+      scheme: http
+      static_configs:
+        - targets:
+            - nginx-ingress-controller-metrics.default.svc.cluster.local:9913
+            #nginx-ingress-controller-metrics.default.svc.cluster.local:9913
+alertmanager:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+    hosts:
+      - alertmanager.frimpong.com
+    paths:
+      - /
+grafana:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+    hosts:
+      - grafana.frimpong.com
+    paths:
+      - /

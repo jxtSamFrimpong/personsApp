@@ -1,0 +1,12 @@
+dependencies:
+- name: elasticsearch
+  repository: https://charts.bitnami.com/bitnami
+  version: 19.5.8
+- name: fluentd
+  repository: https://charts.bitnami.com/bitnami
+  version: 5.5.12
+- name: kibana
+  repository: https://charts.bitnami.com/bitnami
+  version: 10.2.12
+digest: sha256:9966b4588573747f55a905723515e99aec3853aaba541055721e74751aa168d0
+generated: "2023-01-21T12:15:13.470769911Z"

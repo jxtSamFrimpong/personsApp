@@ -1,0 +1,63 @@
+pipeline {
+    agent any
+
+    options {
+        gitLabConnection('Portfolio-Persons')
+    }
+
+    environment{
+        JENKINS_USER=credentials('Jenkins-Username-Git')
+        JENKINS_PASS=credentials('Jenkins-Pass-Git')
+    }
+    
+    parameters {
+        string(name: 'APPLICATIONS_VERSION', defaultValue: 'latest', description: 'Versioning parameter')
+    }
+    
+    stages {
+        stage('Version') {
+            steps {
+                echo "Updating with verision parameter: ${params.APPLICATIONS_VERSION}"
+                sh "ls"
+                
+                script{
+                    env.NEW_BACKEND_VERSION = "      backendImageTag: \"${params.APPLICATIONS_VERSION}\""
+                    env.NEW_WEBAPP_VERSION = "      webappImageTag: \"${params.APPLICATIONS_VERSION}\""
+                    env.NEW_CHART_APP_VERSION = "appVersion: \"${params.APPLICATIONS_VERSION}\""
+                    env.NEW_VERSION = "\"${params.APPLICATIONS_VERSION}\""
+
+                    sh(script: "cd persons && bash versioning-values.sh && cd ..")
+                    sh(script: "cd persons && bash versioning-chart.sh && cd ..")
+                }
+
+
+            }
+        }
+
+        stage('Push new version to git'){
+            steps{
+                sh(script: "cd persons && bash push-new-version-to-git.sh && cd ..")
+            }
+        }
+    }
+
+    post{
+        always{
+            // script{
+            //     emailext attachLog: true, body: '$PROJECT_NAME $BUILD_NUMBER $BUILD_STATUS', compressLog: true, recipientProviders: [previous(), upstreamDevelopers()], subject: 'jenkins-ci-job-report-Helm Versioning: $PROJECT_NAME $BUILD_NUMBER $BUILD_STATUS', to: 'frimpong@reallygreattech.com'
+            // }
+            cleanWs()
+        }
+        success{
+            gitlabCommitStatus(name: 'Build: Helm Versioning') {
+                echo 'success'
+            }
+        }
+
+        failure{
+            gitlabCommitStatus(name: 'Build: Helm versioning') {
+                echo 'failed'
+            }
+        }
+    }
+}

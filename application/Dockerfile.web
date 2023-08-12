@@ -1,0 +1,16 @@
+FROM python:3.10.6-alpine
+
+COPY web/requirements.txt /web/requirements.txt
+RUN pip install -r /web/requirements.txt
+
+COPY web /web
+
+ENV API_HOST localhost \
+    API_PORT 5000 \
+    WEB_APP_PORT 3000
+
+EXPOSE $WEB_APP_PORT
+
+WORKDIR /web
+
+CMD ["python", "app.py"]
