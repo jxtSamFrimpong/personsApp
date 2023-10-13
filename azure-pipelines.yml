@@ -3,27 +3,16 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
-- pedler
+- main
+pool:
+  name: Bukaya
 
 resources:
 - repo: self
 
 variables:
   tag: '$(Build.BuildId)'
-
-stages:
-- stage: Build
-  displayName: Build image
-  jobs:
-  - job: Build
-    displayName: Build
-    pool:
-      name: Bukaya
-    steps:
-    - task: Docker@2
-      displayName: Build an image
-      inputs:
-        command: build
-        dockerfile: '$(Build.SourcesDirectory)/application/Dockerfile.api'
-        tags: |
-          $(tag)
+steps:
+- task: CmdLine@2
+  inputs:
+    script: 'sleep 90'
