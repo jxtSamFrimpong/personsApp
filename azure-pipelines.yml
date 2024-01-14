@@ -5,7 +5,7 @@
 trigger:
 - main
 pool:
-  name: Bukaya
+  name: AZPoolNew-SonarQube
 
 resources:
 - repo: self
